@@ -1,7 +1,7 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CreateParticle
 
-int _particleTexWidth;
+int _particleTexWidth = 1024;
 RWTexture2D<float4> _createParticleTex;
 [numthreads(32, 32, 1)]
 void CreateParticle(uint3 pixel : SV_DispatchThreadID) {
@@ -9,9 +9,8 @@ void CreateParticle(uint3 pixel : SV_DispatchThreadID) {
 	float x = pixel.x - texWidth / 2.0;
 	float y = pixel.y - texWidth / 2.0;
 	float light = 1 - ((x * x + y * y) / (texWidth * texWidth / 5.0));
-	_createParticleTex[pixel.xy] = float4(1, 1, 1, 1) * light;
+	_createParticleTex[pixel.xy] = float4(1.0, 0.0, 1.0, 1.0);
 }
-
 
 #pragma kernel PaintParticles
 #pragma kernel ClearParticles

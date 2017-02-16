@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class RunParticleComputeShader : MonoBehaviour {
 
@@ -24,14 +22,14 @@ public class RunParticleComputeShader : MonoBehaviour {
 
   void Start() {
     // Create Particle
-    _particleTex = new RenderTexture(_particleTexWidth, _particleTexWidth, 24);
+    _particleTex = new RenderTexture(_particleTexWidth, _particleTexWidth, 0);
     _particleTex.name = "Particle Render Texture";
     _particleTex.enableRandomWrite = true;
     _particleTex.Create();
 
     _createParticleKernelIdx = computeShader.FindKernel("CreateParticle");
     computeShader.SetInt(Shader.PropertyToID("_particleTexWidth"), _particleTexWidth);
-    computeShader.SetTexture(_createParticleKernelIdx, "_createParticleTex", _particleTex);
+    computeShader.SetTexture(_createParticleKernelIdx, Shader.PropertyToID("_createParticleTex"), _particleTex);
 
     _particleTexPreviewMaterialInstance = particlePreviewRenderer.material;
     _particleTexPreviewMaterialInstance.mainTexture = _particleTex;
