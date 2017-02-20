@@ -1,7 +1,7 @@
 ﻿Shader "Unlit/ArcanaVolumeRenderer" {
 	Properties {
-		_Volume ("Volume", 3D) = "black" {}
-    _Scale("Scale", Range(0, 2)) = 0.5
+    _ColorVolume("Color Volume", 3D) = "black" {}
+    _NormalVolume("Normal Volume", 3D) = "black" {}
 	}
 	SubShader {
 		Tags { "Queue"="Transparent" "RenderType"="Transparent" }
@@ -32,36 +32,41 @@
 				return o;
 			}
 
-#define ITERATIONS 128
-#define STEP_SIZE 0.01
-      float3 raymarch(sampler3D volume, float3 pos, float3 dir) {
-        float density = 0;
-        float4 samp;
+      #define LIGHT_SOURCE = ;
+
+      #define ITERATIONS 32
+      #define STEP_SIZE 0.03
+      inline fixed4 raymarch(sampler3D colorVolume, sampler3D normalVolume, float3 pos, float3 dir) {
+        fixed4 accumedColor = 0;
+        fixed4 colorSample;
+        float4 normalSample;
+        float3 lightSource = float3(1, 1, 1);
         float3 step = dir * STEP_SIZE;
         float3 p = pos;
-        for (int i = 0; i < ITERATIONS && density < 1; i++) {
-          samp = tex3D(volume, p).x;
-          density += samp / ITERATIONS * 20;
+        for (int i = 0; i < ITERATIONS && accumedColor.a < 1; i++) {
+          colorSample = tex3D(colorVolume, p);
+          normalSample = tex3D(normalVolume, p);
+          float sampleBrightness = dot(normalSample.xyz, lightSource);
+          float3 color = (accumedColor.xyz * (1 - colorSample.a))
+            + ((colorSample.xyz * sampleBrightness) * colorSample.a);
+          accumedColor = fixed4(color.x, color.y, color.z, (accumedColor.a + colorSample.a / ITERATIONS * 20));
           p += step;
         }
-        return density;
+        return accumedColor;
       }
 
-      sampler3D _Volume;
-      float _Scale;
+      sampler3D _ColorVolume;
+      sampler3D _NormalVolume;
 			
 			fixed4 frag (v2f i) : SV_Target {
         float4 objSpacePos = i.objSpaceVertex;
         float3 objSpaceViewDir = -ObjSpaceViewDir(objSpacePos);
 
-        float scale = _Scale;
-
-        float density = raymarch(_Volume,
+        fixed4 color = raymarch(_ColorVolume, _NormalVolume,
           objSpacePos.xyz + float4(0.5, 0.5, 0.5, 0),
           normalize(objSpaceViewDir));
 
-        // float4 color = float4(1, 0, 0, 1);
-        return density;
+        return color;
 			}
 			ENDCG
 		}
