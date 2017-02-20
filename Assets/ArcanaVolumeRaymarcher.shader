@@ -32,15 +32,14 @@
 				return o;
 			}
 
-#define ITERATIONS 64
-#define STEP_SIZE 0.05
+#define ITERATIONS 128
+#define STEP_SIZE 0.01
       float3 raymarch(sampler3D volume, float3 pos, float3 dir) {
         float density = 0;
         float4 samp;
         float3 step = dir * STEP_SIZE;
         float3 p = pos;
-        float3 unit = float3(1, 1, 1);
-        for (int i = 0; i < ITERATIONS; i++) {
+        for (int i = 0; i < ITERATIONS && density < 1; i++) {
           samp = tex3D(volume, p).x;
           density += samp / ITERATIONS * 20;
           p += step;
@@ -52,12 +51,14 @@
       float _Scale;
 			
 			fixed4 frag (v2f i) : SV_Target {
-        float3 objSpacePos     = i.objSpaceVertex;
-        float3 objSpaceViewDir = -UnityWorldSpaceViewDir(mul(unity_ObjectToWorld, float4(i.objSpaceVertex.x, i.objSpaceVertex.y, i.objSpaceVertex.z, 1)).xyz);
+        float4 objSpacePos = i.objSpaceVertex;
+        float3 objSpaceViewDir = -ObjSpaceViewDir(objSpacePos);
 
         float scale = _Scale;
 
-        float density = raymarch(_Volume, objSpacePos, normalize(objSpaceViewDir));
+        float density = raymarch(_Volume,
+          objSpacePos.xyz + float4(0.5, 0.5, 0.5, 0),
+          normalize(objSpaceViewDir));
 
         // float4 color = float4(1, 0, 0, 1);
         return density;
