@@ -1,4 +1,4 @@
-﻿Shader "Unlit/ArcanaVolumeRenderer" {
+﻿Shader "Unlit/VolumeRenderer" {
 	Properties {
     _ColorVolume("Color Volume", 3D) = "black" {}
     _NormalVolume("Normal Volume", 3D) = "black" {}

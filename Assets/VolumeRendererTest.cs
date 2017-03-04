@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class ArcanaSystem : MonoBehaviour {
+public class VolumeRendererTest : MonoBehaviour {
 
   public Renderer arcanaVolumeRenderer;
 
