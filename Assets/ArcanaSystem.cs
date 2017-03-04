@@ -20,25 +20,29 @@ public class ArcanaSystem : MonoBehaviour {
   private void PopulateTextures() {
     int width = 64;
     bool point = false;
-    _colorTex = new Texture3D(width, width, width, TextureFormat.RGBA32, true);
-    _colorTex.wrapMode = TextureWrapMode.Clamp;
-    if (point) {
-      _colorTex.filterMode = FilterMode.Point;
-      _colorTex.anisoLevel = 0;
+    if (_colorTex == null) {
+      _colorTex = new Texture3D(width, width, width, TextureFormat.RGBA32, true);
+      _colorTex.wrapMode = TextureWrapMode.Clamp;
+      if (point) {
+        _colorTex.filterMode = FilterMode.Point;
+        _colorTex.anisoLevel = 0;
+      }
+      else {
+        _colorTex.filterMode = FilterMode.Trilinear;
+        _colorTex.anisoLevel = 9;
+      }
     }
-    else {
-      _colorTex.filterMode = FilterMode.Trilinear;
-      _colorTex.anisoLevel = 9;
-    }
-    _normalTex = new Texture3D(width, width, width, TextureFormat.RGBA32, true);
-    _normalTex.wrapMode = TextureWrapMode.Clamp;
-    if (point) {
-      _normalTex.filterMode = FilterMode.Point;
-      _normalTex.anisoLevel = 0;
-    }
-    else {
-      _normalTex.filterMode = FilterMode.Trilinear;
-      _normalTex.anisoLevel = 9;
+    if (_normalTex == null) {
+      _normalTex = new Texture3D(width, width, width, TextureFormat.RGBA32, true);
+      _normalTex.wrapMode = TextureWrapMode.Clamp;
+      if (point) {
+        _normalTex.filterMode = FilterMode.Point;
+        _normalTex.anisoLevel = 0;
+      }
+      else {
+        _normalTex.filterMode = FilterMode.Trilinear;
+        _normalTex.anisoLevel = 9;
+      }
     }
 
     int numSpheres = 64;
@@ -55,7 +59,7 @@ public class ArcanaSystem : MonoBehaviour {
     Color[] normals = new Color[width * width * width];
     for (int s = 0; s < colors.Length; s++) {
       colors[s] = new Color(0, 0, 0, 0);
-      normals[s] = new Color(1, 1, 1, 1);
+      normals[s] = new Color(1, 1, 1, 0);
 
       int widthSqrd = width * width;
       int i = s % width % (widthSqrd);
@@ -72,7 +76,6 @@ public class ArcanaSystem : MonoBehaviour {
 
       Vector3 curPos = new Vector3(i, j, k);
 
-      // Render a sphere
       // MaybeRenderSphere((Vector3.one * width)/2F,
       //                   (width / 3F), Random.ColorHSV(0, 1, 0.5F, 1, 0.5F, 1),
       //                   curPos, colors, normals, s);
@@ -80,7 +83,6 @@ public class ArcanaSystem : MonoBehaviour {
       for (int m = 0; m < numSpheres; m++) {
         MaybeRenderSphere(spherePositions[m], sphereRadii[m], sphereColors[m], curPos, colors, normals, s);
       }
-      
     }
 
     _colorTex.SetPixels(colors);
@@ -88,7 +90,7 @@ public class ArcanaSystem : MonoBehaviour {
     _normalTex.SetPixels(normals);
     _normalTex.Apply(true, false);
   }
-
+    
   private void MaybeRenderSphere(Vector3 pos, float radius, Color color,
                                  Vector3 curPos, Color[] colors, Color[] normals, int curIdx) {
     Vector3 toPos = (curPos - pos);
@@ -109,5 +111,4 @@ public class ArcanaSystem : MonoBehaviour {
   private Color GetRandomColor() {
     return Random.ColorHSV(0, 1, 0.5F, 1, 0.3F, 1);
   }
-
 }

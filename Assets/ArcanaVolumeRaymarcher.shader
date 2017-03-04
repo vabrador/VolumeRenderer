@@ -6,7 +6,8 @@
 	SubShader {
 		Tags { "Queue"="Transparent" "RenderType"="Transparent" }
 		LOD 100
-    Blend One One
+    Blend SrcAlpha OneMinusSrcAlpha
+    //Blend One One
 
 		Pass {
 			CGPROGRAM
@@ -32,7 +33,16 @@
 				return o;
 			}
 
+      // Blend Mode
+      //#define BLEND_ALPHA
+      //#define BLEND_PREMULTIPLIED_ALPHA
+      #define BLEND_ADDITIVE
+        //#define COLOR_PRESERVING_ADDITIVE
+
+      // Lighting Mode
+      #define USE_LIGHTING
       #define LIGHT_DIRECTION normalize(float3(2, 3, 1))
+
       inline float4 light(float4 srcColor, float4 normal) {
         float3 srcColorXYZ = srcColor.xyz;
         float3 litColor = lerp(srcColorXYZ, srcColorXYZ * dot(LIGHT_DIRECTION, normal.xyz), normal.a);
@@ -43,6 +53,24 @@
         float3 color = (srcColor.xyz * (1 - dstColor.a))
                      + dstColor.xyz * (dstColor.a);
         return fixed4(color.x, color.y, color.z, saturate(dstColor.a + srcColor.a));
+
+        /*
+        // TODO: Implement blend modes (problems with transparency sorting...)
+
+        #ifdef BLEND_ALPHA
+        color = (accumedColor.xyz * (1 - colorSample.a))
+        + (litColorSample * colorSample.a);
+        #endif
+        #ifdef BLEND_PREMULTIPLIED_ALPHA
+        color = (accumedColor.xyz)
+        + (litColorSample * (1 - (accumedColor.a)));
+        #endif
+        #ifdef BLEND_ADDITIVE
+        color = (litColorSample)
+        + (accumedColor.xyz);
+        #endif
+        
+        */
       }
 
       sampler3D _ColorVolume;
@@ -56,7 +84,7 @@
 
       #define OBJECT_WIDTH 1.0
       #define VOXELS_PER_DIMENSION 64
-      #define MAX_ITERATIONS 128
+      #define NUM_ITERATIONS 128
       float4 raymarch(float3 pos, float3 dir) {
         float voxelWidth = OBJECT_WIDTH / VOXELS_PER_DIMENSION;
         float3 voxelSpacePos = pos * VOXELS_PER_DIMENSION;
@@ -71,7 +99,7 @@
         float invDirZ = 1.0 / dir.z;
         //if (dir.z == 0) invDirZ = 10000;
 
-        for (int i = 0; i < MAX_ITERATIONS; i++) {
+        for (int i = 0; i < NUM_ITERATIONS; i++) {
 
           // Calculate step
 
@@ -95,7 +123,18 @@
           voxelSpacePos = pos * VOXELS_PER_DIMENSION;
         }
 
-        return color;
+        float predivided = 1;
+        // Additive color preserving option
+        #ifdef COLOR_PRESERVING_ADDITIVE
+        float divide = 1;
+        divide = color.x;
+        if (color.y > color.x) divide = color.y;
+        if (color.z > color.y && color.z > color.x) divide = color.z;
+        if (divide < 1) divide = 1;
+        predivided = 1 / divide;
+        #endif
+
+        return fixed4(color.x * predivided, color.y * predivided, color.z * predivided, color.a);
       }
 			
 			fixed4 frag (v2f i) : SV_Target {
@@ -109,12 +148,61 @@
         fixed4 color = raymarch(pos, dir);
         return color;
 			}
+
 			ENDCG
 		}
 	}
 }
 
 /*
+
+Old _master_ raymarch code
+
+  inline fixed4 raymarch(sampler3D colorVolume, sampler3D normalVolume, float3 pos, float3 dir) {
+        fixed4 accumedColor = 0;
+        fixed4 colorSample;
+        float4 normalSample;
+        float3 lightSource = normalize(float3(1, 1, 1));
+        float3 step = dir * STEP_SIZE;
+        float3 p = pos;
+        for (int i = 0; i < NUM_ITERATIONS && accumedColor.a < 1; i++) {
+          colorSample = tex3D(colorVolume, p);
+          normalSample = tex3D(normalVolume, p);
+          float sampleBrightness = lerp(1, dot(normalSample.xyz, lightSource), normalSample.a);
+          float alpha = accumedColor.a;
+          float alphaRemaining = (1 - alpha);
+          float3 litColorSample = colorSample.xyz;
+          #ifdef USE_LIGHTING
+          litColorSample = colorSample.xyz * sampleBrightness;
+          #endif
+          float3 color;
+          #ifdef TRADITIONAL_TRANSPARENCY
+          color = (accumedColor.xyz * (1 - colorSample.a))
+          + (litColorSample * colorSample.a);
+          #endif
+          #ifdef PREMULTIPLIED_TRANSPARENCY
+          color = (accumedColor.xyz)
+          + (litColorSample * (1 - (accumedColor.a)));
+          #endif
+          #ifdef ADDITIVE_BLEND
+          color = (litColorSample)
+          +(accumedColor.xyz);
+          #endif
+          accumedColor = fixed4(color.x, color.y, color.z, alpha + colorSample.a + (lerp(0, (1 - sampleBrightness)*(1 - sampleBrightness), normalSample.a)));
+          p += step;
+        }
+
+        float divide = 1;
+        #ifdef COLOR_PRESERVING_ADDITIVE
+        divide = accumedColor.x;
+        if (accumedColor.y > accumedColor.x) divide = accumedColor.y;
+        if (accumedColor.z > accumedColor.y && accumedColor.z > accumedColor.x) divide = accumedColor.z;
+        if (divide < 1) divide = 1;
+        #endif
+
+        return fixed4(accumedColor.x / divide, accumedColor.y / divide, accumedColor.z / divide, accumedColor.a);
+      }
+
 
 Old raymarch code
 
