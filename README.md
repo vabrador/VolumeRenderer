@@ -1,2 +1,2 @@
-# ComputeShaders
-just learning to compute shader, don't mind me
+# VolumeRenderer
+Rendering volumes by sampling 3D textures for color, density, and normals.
